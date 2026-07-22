@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluxograma de Decisões — Televendas Rede Nilo</title>
+<style>
+  :root{
+    --amarelo: #FFC400;
+    --amarelo-escuro: #E6A100;
+    --azul: #1B2A4A;
+    --azul-2: #2c4270;
+    --grafite: #333333;
+    --fundo: #F7F7F5;
+    --branco: #FFFFFF;
+    --vermelho: #C0392B;
+    --verde: #2E8B57;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--fundo);font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;color:var(--grafite);}
+
+  /* ===== HEADER ===== */
+  .header{
+    background:linear-gradient(135deg, var(--azul) 0%, #24365e 100%);
+    color:var(--branco);
+    padding:36px 6vw 30px;
+    position:relative; overflow:hidden;
+  }
+  .header::after{
+    content:""; position:absolute; right:-60px; top:-60px;
+    width:260px; height:260px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,196,0,0.18) 0%, rgba(255,196,0,0) 70%);
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--amarelo); font-weight:700; margin-bottom:10px;
+  }
+  .eyebrow::before{content:""; width:22px; height:2px; background:var(--amarelo); display:inline-block;}
+  h1{margin:0 0 8px; font-size:clamp(22px,3.2vw,34px); font-weight:800; letter-spacing:-0.5px;}
+  .sub{font-size:14.5px; opacity:0.82; max-width:720px; line-height:1.55;}
+  .meta-row{display:flex; gap:28px; flex-wrap:wrap; margin-top:22px;}
+  .meta-item{font-size:12px; opacity:0.75;}
+  .meta-item b{display:block; font-size:14px; color:var(--amarelo); font-weight:700; opacity:1;}
+
+  /* ===== LEGEND STRIP ===== */
+  .legend-strip{
+    display:flex; flex-wrap:wrap; gap:26px; justify-content:center;
+    background:var(--branco); margin:-22px 6vw 0; border-radius:14px;
+    box-shadow:0 12px 30px rgba(27,42,74,0.14);
+    position:relative; z-index:5; padding:16px 24px;
+  }
+  .legend-strip .item{display:flex; align-items:center; gap:8px; font-size:12px; color:#555; font-weight:600;}
+  .legend-shape{width:26px; height:18px; display:inline-block; flex-shrink:0;}
+  .legend-shape.rect{background:var(--branco); border:2.5px solid var(--azul); border-radius:3px;}
+  .legend-shape.diamond{background:var(--amarelo); clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);}
+  .legend-line{width:26px; height:0; border-top:2.5px solid var(--azul); display:inline-block;}
+  .legend-line.dashed{border-top:2.5px dashed var(--vermelho);}
+
+  /* ===== DIAGRAM ===== */
+  .diagram-wrap{max-width:1500px; margin:0 auto; padding:56px 3vw 10px;}
+  .diagram-title{text-align:center; margin-bottom:8px;}
+  .diagram-title h2{font-size:21px; color:var(--azul); margin:0 0 6px; font-weight:800;}
+  .diagram-title p{font-size:12.5px; color:#777; margin:0; max-width:640px; margin:0 auto;}
+
+  .canvas-scroll{overflow-x:auto; margin-top:26px; padding-bottom:6px; position:relative;}
+  svg.flow-svg{display:block; min-width:1400px; width:100%; height:auto;}
+  @media (max-width:900px){
+    svg.flow-svg{min-width:1000px;}
+  }
+
+  .fc-rect{fill:var(--branco); stroke:var(--azul); stroke-width:2.5px;}
+  .fc-rect.terminal{fill:var(--branco); stroke:var(--azul); stroke-width:3.5px;}
+  .fc-diamond{fill:var(--amarelo); stroke:var(--amarelo-escuro); stroke-width:2.5px;}
+
+  .fc-rect.flash-red{fill:#FBEAE8; stroke:var(--vermelho); transition:fill .25s, stroke .25s;}
+  .fc-diamond.flash-red{fill:var(--vermelho); stroke:#8e2a1f; transition:fill .25s, stroke .25s;}
+  .fc-rect.flash-green{fill:#EAF6EF; stroke:var(--verde); transition:fill .25s, stroke .25s;}
+  .fc-diamond.flash-green{fill:var(--verde); stroke:#1f6b40; transition:fill .25s, stroke .25s;}
+
+  .node-label{font-size:14px; font-weight:800; fill:var(--azul); text-anchor:middle; pointer-events:none;}
+  .fc-diamond ~ .node-label, .diamond-label{fill:var(--azul); font-size:11.5px; font-weight:800;}
+  .node-sub{font-size:10.5px; fill:#8b8b8b; text-anchor:middle; font-weight:600;}
+  .flash-red .node-label, .flash-red .node-sub{fill:#fff;}
+  .flash-green .node-label, .flash-green .node-sub{fill:#fff;}
+
+  .flow-arrow{fill:none; stroke:var(--azul); stroke-width:2.5px;}
+  .loop-arrow{fill:none; stroke:var(--vermelho); stroke-width:2.5px; stroke-dasharray:7 6;}
+  .loop-arrow.active{animation:dashmove 0.7s linear infinite;}
+  .feedback-track{fill:none; stroke:#E2DFD6; stroke-width:2.5px; stroke-dasharray:5 6;}
+  .feedback-arrow{fill:none; stroke:var(--amarelo-escuro); stroke-width:3px; stroke-linecap:round; opacity:0;}
+  .feedback-arrow.pulse{opacity:1; stroke:var(--vermelho); stroke-dasharray:9 8; animation:dashflow 0.55s linear infinite;}
+  @keyframes dashmove{ to{ stroke-dashoffset:-26; } }
+  @keyframes dashflow{ to{ stroke-dashoffset:-24; } }
+
+  .edge-label{font-size:11px; font-weight:700; fill:#666;}
+  .edge-label.sim{fill:var(--verde);}
+  .edge-label.nao{fill:var(--vermelho);}
+  .loop-label{font-size:10.5px; font-weight:700; fill:var(--vermelho);}
+
+  .token{
+    width:24px; height:24px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #FFE28A, var(--amarelo) 60%, var(--amarelo-escuro));
+    border:3px solid var(--azul);
+    box-shadow:0 4px 10px rgba(27,42,74,0.4);
+    position:absolute; top:0; left:0; margin:-12px 0 0 -12px;
+    z-index:20;
+  }
+
+  /* ===== STATUS BAR ===== */
+  .status-bar{
+    max-width:1000px; margin:30px auto 0; background:var(--azul); color:var(--branco);
+    border-radius:12px; padding:16px 22px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 10px 26px rgba(27,42,74,0.18);
+  }
+  .status-dot{width:10px; height:10px; border-radius:50%; background:var(--amarelo); flex-shrink:0; animation:blink 1.4s ease-in-out infinite;}
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .status-text{font-size:13.5px; font-weight:600;}
+  .status-eyebrow{font-size:10px; letter-spacing:1.4px; text-transform:uppercase; color:var(--amarelo); font-weight:800; margin-bottom:2px;}
+
+  .footer-notes{
+    max-width:900px; margin:36px auto 60px; padding:0 6vw;
+    font-size:11.5px; color:#8b8b8b; line-height:1.6; text-align:center;
+  }
+  .footer-notes b{color:var(--azul);}
+
+  .scroll-hint{display:none; text-align:center; font-size:11.5px; color:var(--amarelo-escuro); font-weight:700; margin-top:10px;}
+
+  @media (max-width:900px){
+    .header{padding:28px 5vw 24px;}
+    .sub{font-size:13px;}
+    .meta-row{gap:16px;}
+    .legend-strip{margin:-18px 4vw 0; padding:12px 16px; gap:16px;}
+    .legend-strip .item{font-size:11px;}
+    .diagram-wrap{padding:40px 3vw 10px;}
+    .diagram-title h2{font-size:18px;}
+    .diagram-title p{font-size:11.5px;}
+    .status-bar{margin:22px 4vw 0; padding:13px 16px;}
+    .status-text{font-size:12.5px;}
+    .scroll-hint{display:block;}
+  }
+  @media (max-width:480px){
+    h1{font-size:21px;}
+    .meta-item b{font-size:12.5px;}
+    .legend-strip{flex-direction:column; align-items:flex-start; gap:10px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Rede Nilo Supermercados · Gestão de Processos</div>
+  <h1>Fluxograma de Decisões — Processo de Televendas</h1>
+  <div class="sub">Representação padrão do processo (retângulos = atividades, losangos = pontos de decisão), evidenciando os pontos de divergência que fazem o pedido retornar a uma etapa anterior até a resolução.</div>
+  <div class="meta-row">
+    <div class="meta-item"><b>4 decisões</b>Pontos de verificação no fluxo</div>
+    <div class="meta-item"><b>3 retornos</b>Loops de divergência mapeados</div>
+    <div class="meta-item"><b>1 feedback</b>Pós-entrega ao Televendas</div>
+  </div>
+</div>
+
+<div class="legend-strip">
+  <div class="item"><span class="legend-shape rect"></span> Atividade do processo</div>
+  <div class="item"><span class="legend-shape diamond"></span> Ponto de decisão</div>
+  <div class="item"><span class="legend-line"></span> Fluxo normal</div>
+  <div class="item"><span class="legend-line dashed"></span> Retorno por divergência</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">
+    <h2>Fluxo com Pontos de Divergência</h2>
+    <p>Acompanhe o marcador percorrendo o processo — nos pontos de decisão ele mostra se há divergência e, quando necessário, retorna à etapa responsável por resolvê-la antes de seguir em frente</p>
+    <p class="scroll-hint">↔ Deslize o diagrama para o lado para ver o fluxo completo</p>
+  </div>
+
+  <div class="canvas-scroll">
+    <svg class="flow-svg" id="flowSvg" viewBox="0 0 1560 660" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#1B2A4A"/>
+        </marker>
+        <marker id="arrowRed" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#C0392B"/>
+        </marker>
+        <marker id="arrowAmber" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#E6A100"/>
+        </marker>
+      </defs>
+
+      <!-- ===== Loop-back arrows (drawn first, behind nodes) ===== -->
+      <path id="loopA" class="loop-arrow" marker-end="url(#arrowRed)"
+            d="M 500 315 C 500 170 110 170 110 325"/>
+      <path id="loopB" class="loop-arrow" marker-end="url(#arrowRed)"
+            d="M 860 315 C 860 110 330 110 330 325"/>
+      <path id="loopC" class="loop-arrow" marker-end="url(#arrowRed)"
+            d="M 1220 315 C 1220 55 690 55 690 325"/>
+      <text class="loop-label" x="300" y="163">Consulta o cliente sobre substituição</text>
+      <text class="loop-label" x="580" y="103">Separador resolve a divergência</text>
+      <text class="loop-label" x="940" y="48">Prevenção consulta o caixa</text>
+
+      <!-- ===== Feedback dashed line (post-delivery) ===== -->
+      <path class="feedback-track"
+            d="M 1400 397 C 1400 560 110 560 110 397"/>
+      <path id="feedbackLine" class="feedback-arrow" marker-end="url(#arrowAmber)"
+            d="M 1400 397 C 1400 560 110 560 110 397"/>
+      <text class="loop-label" x="750" y="583" fill="#B57A15">Cliente identifica divergência e informa o Televendas</text>
+
+      <!-- ===== Forward spine arrows ===== -->
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 190 360 L 250 360"/>
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 410 360 L 447 360"/>
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 553 360 L 610 360"/>
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 770 360 L 807 360"/>
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 913 360 L 970 360"/>
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 1130 360 L 1167 360"/>
+      <path class="flow-arrow" marker-end="url(#arrowBlue)" d="M 1273 360 L 1320 360"/>
+      <text class="edge-label sim" x="580" y="345">Sim</text>
+      <text class="edge-label sim" x="940" y="345">Sim</text>
+      <text class="edge-label sim" x="1150" y="345">Sim</text>
+
+      <!-- ===== Nodes: rectangles ===== -->
+      <g id="node-pedido">
+        <rect class="fc-rect" x="30" y="325" width="160" height="70" rx="8"/>
+        <text class="node-label" x="110" y="356">Pedido via</text>
+        <text class="node-label" x="110" y="374">WhatsApp</text>
+      </g>
+
+      <g id="node-separacao">
+        <rect class="fc-rect" x="250" y="325" width="160" height="70" rx="8"/>
+        <text class="node-label" x="330" y="365">Separação</text>
+      </g>
+
+      <g id="node-caixa">
+        <rect class="fc-rect" x="610" y="325" width="160" height="70" rx="8"/>
+        <text class="node-label" x="690" y="356">Passagem</text>
+        <text class="node-label" x="690" y="374">no Caixa</text>
+      </g>
+
+      <g id="node-conferencia">
+        <rect class="fc-rect" x="970" y="325" width="160" height="70" rx="8"/>
+        <text class="node-label" x="1050" y="356">Conferência</text>
+        <text class="node-label" x="1050" y="374">e Liberação</text>
+      </g>
+
+      <g id="node-entrega">
+        <rect class="fc-rect terminal" x="1320" y="325" width="160" height="70" rx="35"/>
+        <text class="node-label" x="1400" y="356" fill="#1B2A4A">Entrega ao</text>
+        <text class="node-label" x="1400" y="374" fill="#1B2A4A">Cliente</text>
+      </g>
+
+      <!-- ===== Nodes: diamonds ===== -->
+      <g id="node-d2">
+        <polygon class="fc-diamond" points="500,315 553,360 500,405 447,360"/>
+        <text class="node-sub" x="500" y="357">Produto</text>
+        <text class="node-sub" x="500" y="368">disponível?</text>
+      </g>
+      <text class="edge-label nao" x="470" y="300">Não</text>
+
+      <g id="node-d3">
+        <polygon class="fc-diamond" points="860,315 913,360 860,405 807,360"/>
+        <text class="node-sub" x="860" y="352">Divergência</text>
+        <text class="node-sub" x="860" y="363">peso / qtd?</text>
+      </g>
+      <text class="edge-label nao" x="832" y="300">Sim</text>
+
+      <g id="node-d4">
+        <polygon class="fc-diamond" points="1220,315 1273,360 1220,405 1167,360"/>
+        <text class="node-sub" x="1220" y="352">Divergência</text>
+        <text class="node-sub" x="1220" y="363">na conferência?</text>
+      </g>
+      <text class="edge-label nao" x="1192" y="300">Sim</text>
+
+      <!-- ===== Animated token ===== -->
+    </svg>
+    <div class="token" id="token"></div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-dot"></span>
+    <div>
+      <div class="status-eyebrow">Simulação do fluxo</div>
+      <div class="status-text" id="statusText">Pedido recebido via WhatsApp</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-notes">
+  Fluxograma elaborado para fins de comunicação executiva do processo de <b>Televendas</b> da Rede Nilo Supermercados, com base na simbologia padrão (ANSI/ISO) de atividades e pontos de decisão.
+  Retornos representam os principais gargalos identificados: falta de produto na separação, divergência de peso/quantidade no caixa e divergência na conferência.
+</div>
+
+<script>
+(function(){
+  const svg = document.getElementById('flowSvg');
+  const wrap = document.querySelector('.canvas-scroll');
+  const token = document.getElementById('token');
+  const statusText = document.getElementById('statusText');
+  const feedbackLine = document.getElementById('feedbackLine');
+
+  const NS = 'http://www.w3.org/2000/svg';
+  function measure(d){
+    const p = document.createElementNS(NS,'path');
+    p.setAttribute('d', d);
+    return p;
+  }
+
+  // Path 'd' definitions matching the visible spine / loop arrows above
+  const SEG = {
+    seg0: 'M 190 360 L 250 360',
+    seg1: 'M 410 360 L 500 360',
+    seg2: 'M 500 360 L 610 360',
+    seg3: 'M 770 360 L 860 360',
+    seg4: 'M 860 360 L 970 360',
+    seg5: 'M 1130 360 L 1220 360',
+    seg6: 'M 1220 360 L 1320 360',
+    loopA: 'M 500 315 C 500 170 110 170 110 325',
+    loopB: 'M 860 315 C 860 110 330 110 330 325',
+    loopC: 'M 1220 315 C 1220 55 690 55 690 325'
+  };
+
+  const NODE_POS = {
+    pedido:{x:110,y:360}, separacao:{x:330,y:360}, d2:{x:500,y:360},
+    caixa:{x:690,y:360}, d3:{x:860,y:360}, conferencia:{x:1050,y:360},
+    d4:{x:1220,y:360}, entrega:{x:1400,y:360}
+  };
+
+  const NODE_EL = {
+    pedido:document.querySelector('#node-pedido rect'),
+    separacao:document.querySelector('#node-separacao rect'),
+    caixa:document.querySelector('#node-caixa rect'),
+    conferencia:document.querySelector('#node-conferencia rect'),
+    entrega:document.querySelector('#node-entrega rect'),
+    d2:document.querySelector('#node-d2 polygon'),
+    d3:document.querySelector('#node-d3 polygon'),
+    d4:document.querySelector('#node-d4 polygon')
+  };
+
+  // ===== Timeline script =====
+  const T = [
+    {type:'pause', node:'pedido', dur:900, status:'Pedido recebido via WhatsApp — atendente confirma itens'},
+    {type:'travel', seg:'seg0'},
+    {type:'pause', node:'separacao', dur:900, status:'Equipe inicia a separação dos produtos'},
+    {type:'travel', seg:'seg1'},
+    {type:'pause', node:'d2', dur:1200, status:'Produto disponível? NÃO — item em ruptura', flash:'flash-red'},
+    {type:'travel', seg:'loopA'},
+    {type:'pause', node:'pedido', dur:1200, status:'Televendas consulta o cliente sobre substituição do item', flash:'flash-red'},
+    {type:'travel', seg:'seg0'},
+    {type:'pause', node:'separacao', dur:900, status:'Separação retomada com o item definido'},
+    {type:'travel', seg:'seg1'},
+    {type:'pause', node:'d2', dur:800, status:'Produto disponível? SIM', flash:'flash-green'},
+    {type:'travel', seg:'seg2'},
+    {type:'pause', node:'caixa', dur:900, status:'Produtos passam pelo caixa'},
+    {type:'travel', seg:'seg3'},
+    {type:'pause', node:'d3', dur:1200, status:'Divergência de peso/quantidade? SIM — leitura manual da lista', flash:'flash-red'},
+    {type:'travel', seg:'loopB'},
+    {type:'pause', node:'separacao', dur:1200, status:'Caixa aciona o separador para resolver a divergência', flash:'flash-red'},
+    {type:'travel', seg:'seg1'},
+    {type:'pause', node:'d2', dur:500, status:'Produto disponível? SIM', flash:'flash-green'},
+    {type:'travel', seg:'seg2'},
+    {type:'pause', node:'caixa', dur:900, status:'Passagem no caixa retomada'},
+    {type:'travel', seg:'seg3'},
+    {type:'pause', node:'d3', dur:800, status:'Divergência de peso/quantidade? NÃO', flash:'flash-green'},
+    {type:'travel', seg:'seg4'},
+    {type:'pause', node:'conferencia', dur:900, status:'Prevenção realiza a conferência do pedido'},
+    {type:'travel', seg:'seg5'},
+    {type:'pause', node:'d4', dur:1200, status:'Divergência na conferência? SIM', flash:'flash-red'},
+    {type:'travel', seg:'loopC'},
+    {type:'pause', node:'caixa', dur:1200, status:'Prevenção consulta o caixa para resolver a divergência', flash:'flash-red'},
+    {type:'travel', seg:'seg3'},
+    {type:'pause', node:'d3', dur:500, status:'Divergência de peso/quantidade? NÃO', flash:'flash-green'},
+    {type:'travel', seg:'seg4'},
+    {type:'pause', node:'conferencia', dur:900, status:'Conferência retomada'},
+    {type:'travel', seg:'seg5'},
+    {type:'pause', node:'d4', dur:800, status:'Divergência na conferência? NÃO — pedido liberado', flash:'flash-green'},
+    {type:'travel', seg:'seg6'},
+    {type:'pause', node:'entrega', dur:1600, status:'Pedido entregue ao cliente', feedback:true},
+  ];
+
+  // Precompute path lengths and per-keyframe timing
+  let phases = [];
+  function buildTimeline(){
+    phases = [];
+    let t = 0;
+    const TRAVEL_SPEED = 3.6; // ms per px
+    T.forEach((step) => {
+      if(step.type === 'pause'){
+        phases.push({...step, tStart:t, tEnd:t+step.dur});
+        t += step.dur;
+      } else {
+        const el = measure(SEG[step.seg]);
+        const len = el.getTotalLength();
+        const dur = Math.max(500, len * TRAVEL_SPEED);
+        phases.push({...step, tStart:t, tEnd:t+dur, pathD:SEG[step.seg], len});
+        t += dur;
+      }
+    });
+    return t; // total duration
+  }
+  const TOTAL_DURATION = buildTimeline();
+
+  const LOOP_SEGS = ['loopA','loopB','loopC'];
+  function clearLoopActive(){
+    LOOP_SEGS.forEach(id => document.getElementById(id).classList.remove('active'));
+  }
+
+  let lastFlashEl = null;
+  function clearFlash(){
+    if(lastFlashEl){
+      lastFlashEl.classList.remove('flash-red','flash-green');
+      lastFlashEl = null;
+    }
+  }
+
+  let lastPhaseIdx = -1;
+  let feedbackTimeout = null;
+
+  function applyPhase(idx, phase){
+    if(idx === lastPhaseIdx) return;
+    lastPhaseIdx = idx;
+    statusText.textContent = phase.status || statusText.textContent;
+
+    clearLoopActive();
+    if(phase.type === 'travel' && LOOP_SEGS.includes(phase.seg)){
+      document.getElementById(phase.seg).classList.add('active');
+    }
+
+    if(phase.type === 'pause'){
+      clearFlash();
+      if(phase.flash){
+        const el = NODE_EL[phase.node];
+        if(el){ el.classList.add(phase.flash); lastFlashEl = el; }
+      }
+      if(phase.feedback){
+        feedbackLine.classList.add('pulse');
+        clearTimeout(feedbackTimeout);
+        feedbackTimeout = setTimeout(() => feedbackLine.classList.remove('pulse'), 1400);
+      }
+    } else {
+      clearFlash();
+    }
+  }
+
+  function getSvgScale(){
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    return {
+      sx: rect.width / vb.width,
+      sy: rect.height / vb.height,
+      left: svg.offsetLeft,
+      top: svg.offsetTop
+    };
+  }
+
+  let cachedPath = {};
+  function pathFor(d){
+    if(!cachedPath[d]){
+      const p = document.createElementNS(NS,'path');
+      p.setAttribute('d', d);
+      cachedPath[d] = p;
+    }
+    return cachedPath[d];
+  }
+
+  let startTs = null;
+  function animate(ts){
+    if(startTs === null) startTs = ts;
+    const elapsed = (ts - startTs) % TOTAL_DURATION;
+
+    let phase = phases[0], idx = 0;
+    for(let i=0;i<phases.length;i++){
+      if(elapsed >= phases[i].tStart && elapsed <= phases[i].tEnd){ phase = phases[i]; idx = i; break; }
+    }
+    applyPhase(idx, phase);
+
+    const scale = getSvgScale();
+    let x, y;
+    if(phase.type === 'pause'){
+      const pos = NODE_POS[phase.node];
+      x = pos.x; y = pos.y;
+    } else {
+      const frac = (elapsed - phase.tStart) / (phase.tEnd - phase.tStart);
+      const p = pathFor(phase.pathD);
+      const pt = p.getPointAtLength(phase.len * frac);
+      x = pt.x; y = pt.y;
+    }
+
+    token.style.transform = `translate(${x*scale.sx + scale.left}px, ${y*scale.sy + scale.top}px)`;
+
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+  window.addEventListener('resize', () => {});
+})();
+</script>
+
+</body>
+</html>

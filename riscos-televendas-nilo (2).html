@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluxo de Televendas — Rede Nilo Supermercados</title>
+<style>
+  :root{
+    --amarelo: #FFC400;
+    --amarelo-escuro: #E6A100;
+    --azul: #1B2A4A;
+    --grafite: #333333;
+    --fundo: #F7F7F5;
+    --branco: #FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--fundo);font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;color:var(--grafite);}
+
+  /* ===== HEADER ===== */
+  .header{
+    background:linear-gradient(135deg, var(--azul) 0%, #24365e 100%);
+    color:var(--branco);
+    padding:36px 6vw 30px;
+    position:relative;
+    overflow:hidden;
+  }
+  .header::after{
+    content:"";
+    position:absolute; right:-60px; top:-60px;
+    width:260px; height:260px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,196,0,0.18) 0%, rgba(255,196,0,0) 70%);
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--amarelo); font-weight:700; margin-bottom:10px;
+  }
+  .eyebrow::before{content:""; width:22px; height:2px; background:var(--amarelo); display:inline-block;}
+  h1{margin:0 0 8px; font-size:clamp(24px,3.4vw,36px); font-weight:800; letter-spacing:-0.5px;}
+  .sub{font-size:15px; opacity:0.82; max-width:680px; line-height:1.5;}
+  .meta-row{display:flex; gap:28px; flex-wrap:wrap; margin-top:22px;}
+  .meta-item{font-size:12px; opacity:0.75;}
+  .meta-item b{display:block; font-size:14px; color:var(--amarelo); font-weight:700; opacity:1;}
+
+  /* ===== SUMMARY STRIP ===== */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(5,1fr);
+    background:var(--branco); margin:-22px 6vw 0; border-radius:14px;
+    box-shadow:0 12px 30px rgba(27,42,74,0.14);
+    position:relative; z-index:5; overflow:hidden;
+  }
+  .kpi{padding:18px 14px; text-align:center; border-right:1px solid #EFEFEF;}
+  .kpi:last-child{border-right:none;}
+  .kpi .num{font-size:22px; font-weight:800; color:var(--azul);}
+  .kpi .lbl{font-size:10.5px; text-transform:uppercase; letter-spacing:0.8px; color:#8b8b8b; margin-top:3px;}
+
+  /* ===== STAGE / SIGNATURE FLOW ===== */
+  .stage-wrap{
+    padding:70px 4vw 30px;
+    max-width:1280px; margin:0 auto;
+  }
+  .stage-title{text-align:center; margin-bottom:6px;}
+  .stage-title h2{font-size:22px; color:var(--azul); margin:0 0 6px; font-weight:800;}
+  .stage-title p{font-size:13px; color:#777; margin:0;}
+
+  .track-container{
+    position:relative;
+    width:100%;
+    height:560px;
+    margin-top:30px;
+  }
+  svg.track-svg{width:100%; height:100%; overflow:visible;}
+  .aisle-path{
+    fill:none;
+    stroke:#E4E1D8;
+    stroke-width:34;
+    stroke-linecap:round;
+  }
+  .aisle-dash{
+    fill:none;
+    stroke:var(--branco);
+    stroke-width:3;
+    stroke-dasharray:14 14;
+    stroke-linecap:round;
+  }
+
+  .station{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    width:180px;
+    text-align:center;
+  }
+  .station .node{
+    width:74px; height:74px; border-radius:50%;
+    background:var(--branco);
+    border:4px solid var(--amarelo);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 10px;
+    font-size:30px;
+    box-shadow:0 8px 18px rgba(27,42,74,0.16);
+    position:relative;
+    z-index:3;
+  }  .station.prevencao .node{border-color:var(--azul);}
+  .station .num{
+    position:absolute; top:-8px; right:-8px;
+    background:var(--azul); color:var(--amarelo);
+    font-size:11px; font-weight:800;
+    width:24px; height:24px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--branco);
+  }
+  .station.prevencao .num{background:var(--amarelo); color:var(--azul);}
+  .risk-badge{
+    position:absolute; top:-9px; left:-9px;
+    width:23px; height:23px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:var(--branco);
+    border:2px solid var(--branco);
+    box-shadow:0 3px 8px rgba(0,0,0,0.18);
+  }
+  .risk-badge.high{background:#C0392B;}
+  .risk-badge.med{background:#D98A1F;}
+  .station h3{font-size:13.5px; margin:0 0 4px; color:var(--azul); font-weight:800;}
+  .station p{font-size:11px; color:#777; margin:0; line-height:1.35;}
+  .station .tag{
+    display:inline-block; margin-top:6px; font-size:9.5px; font-weight:700;
+    letter-spacing:0.4px; text-transform:uppercase;
+    background:var(--fundo); color:var(--azul);
+    padding:3px 8px; border-radius:20px; border:1px solid #E4E1D8;
+  }
+
+  /* ===== ANIMATED CHARACTER ===== */
+  .cart-guy{
+    position:absolute; top:0; left:0;
+    width:52px; height:52px;
+    margin:-26px 0 0 -26px;
+    z-index:10;
+    filter:drop-shadow(0 6px 8px rgba(27,42,74,0.35));
+    will-change:transform;
+  }
+  .cart-guy svg{width:100%; height:100%; display:block;}
+  .timer-badge{
+    position:absolute; top:-30px; left:50%; transform:translateX(-50%);
+    background:var(--azul); color:var(--amarelo);
+    font-size:12px; font-weight:800; letter-spacing:0.3px;
+    padding:4px 9px; border-radius:6px;
+    white-space:nowrap;
+    box-shadow:0 4px 10px rgba(27,42,74,0.3);
+    font-variant-numeric:tabular-nums;
+  }
+  .timer-badge::after{
+    content:"";
+    position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+    border:5px solid transparent; border-top-color:var(--azul);
+  }
+  .cart-guy .wheel{animation:spin 0.6s linear infinite; transform-origin:center;}
+  @keyframes spin{ to { transform:rotate(360deg); } }
+
+  .pulse-dot{
+    position:absolute; width:14px; height:14px; border-radius:50%;
+    margin:-7px 0 0 -7px;
+    background:var(--amarelo); top:0; left:0;
+    opacity:0.55;
+    box-shadow:0 0 0 0 rgba(255,196,0,0.6);
+  }
+
+  /* ===== LEGEND / FOOTER NOTES ===== */
+  .legend{
+    display:flex; justify-content:center; gap:26px; flex-wrap:wrap;
+    margin-top:6px; padding-bottom:6px;
+  }
+  .legend-item{display:flex; align-items:center; gap:7px; font-size:12px; color:#666;}
+  .legend-dot{width:12px; height:12px; border-radius:50%; border:3px solid var(--amarelo); background:var(--branco);}
+  .legend-dot.prev{border-color:var(--azul);}
+
+  .footer-notes{
+    max-width:900px; margin:36px auto 60px; padding:0 6vw;
+    font-size:11.5px; color:#8b8b8b; line-height:1.6; text-align:center;
+  }
+  .footer-notes b{color:var(--azul);}
+
+  /* ===== SLA CARD ===== */
+  .sla-card{
+    max-width:920px; margin:38px auto 0; padding:30px 34px;
+    background:var(--branco); border-radius:16px;
+    box-shadow:0 14px 34px rgba(27,42,74,0.12);
+    border:1px solid #EFEFEF;
+  }
+  .sla-header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:20px; flex-wrap:wrap;
+    padding-bottom:22px; margin-bottom:22px;
+    border-bottom:2px solid var(--fundo);
+  }
+  .sla-eyebrow{
+    font-size:11px; letter-spacing:1.8px; text-transform:uppercase;
+    color:var(--amarelo-escuro); font-weight:800; margin-bottom:6px;
+  }
+  .sla-title{font-size:20px; font-weight:800; color:var(--azul); margin-bottom:4px;}
+  .sla-desc{font-size:12.5px; color:#888; max-width:420px; line-height:1.5;}
+  .sla-total{
+    text-align:right; background:var(--azul); border-radius:12px;
+    padding:14px 22px; min-width:150px;
+  }
+  .sla-total-num{
+    display:block; font-size:30px; font-weight:800; color:var(--amarelo);
+    letter-spacing:-0.5px; font-variant-numeric:tabular-nums;
+  }
+  .sla-total-lbl{
+    display:block; font-size:10px; letter-spacing:0.6px; text-transform:uppercase;
+    color:rgba(255,255,255,0.75); font-weight:700; margin-top:2px;
+  }
+  .sla-breakdown{display:flex; flex-direction:column; gap:14px;}
+  .sla-step{display:grid; grid-template-columns:150px 1fr 52px; align-items:center; gap:14px;}
+  .sla-step-lbl{font-size:12.5px; color:var(--grafite); font-weight:600;}
+  .sla-bar{height:8px; background:var(--fundo); border-radius:5px; overflow:hidden;}
+  .sla-bar-fill{height:100%; background:linear-gradient(90deg,var(--amarelo-escuro),var(--amarelo)); border-radius:5px;}
+  .sla-bar-fill.prev{background:linear-gradient(90deg,var(--azul),#2c4270);}
+  .sla-step-time{font-size:12.5px; font-weight:800; color:var(--azul); text-align:right; font-variant-numeric:tabular-nums;}
+
+  @media (max-width:640px){
+    .sla-header{flex-direction:column; align-items:flex-start;}
+    .sla-total{text-align:left; width:100%;}
+    .sla-step{grid-template-columns:110px 1fr 46px; gap:10px;}
+  }
+
+  /* ===== RISK MAP ===== */
+  .risk-map{max-width:1180px; margin:38px auto 0; padding:0 6vw;}
+  .risk-map-header{text-align:center; margin-bottom:26px;}
+  .risk-map .sla-desc{max-width:520px; margin:0 auto;}
+  .risk-grid{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:16px;
+  }
+  .risk-card{
+    background:var(--branco); border-radius:14px; padding:18px 16px;
+    box-shadow:0 10px 26px rgba(27,42,74,0.10);
+    border:1px solid #EFEFEF;
+    display:flex; flex-direction:column;
+  }
+  .risk-card-top{display:flex; align-items:flex-start; gap:10px; margin-bottom:12px;}
+  .risk-card-icon{
+    width:38px; height:38px; min-width:38px; border-radius:50%;
+    background:var(--fundo); display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+  }
+  .risk-card-stage{font-size:12.5px; font-weight:800; color:var(--azul); line-height:1.3; margin-bottom:5px;}
+  .crit-tag{
+    display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:0.4px;
+    text-transform:uppercase; padding:3px 8px; border-radius:20px; color:var(--branco);
+  }
+  .crit-tag.high{background:#C0392B;}
+  .crit-tag.med{background:#D98A1F;}
+  .risk-list{margin:0; padding-left:18px; flex:1;}
+  .risk-list li{font-size:11.5px; color:var(--grafite); line-height:1.5; margin-bottom:6px;}
+  .risk-list li::marker{color:var(--amarelo-escuro);}
+
+  @media (max-width:1050px){
+    .risk-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:560px){
+    .risk-grid{grid-template-columns:1fr;}
+  }
+
+  @media (max-width:900px){
+    .header{padding:28px 5vw 24px;}
+    .sub{font-size:13px;}
+    .kpi-strip{grid-template-columns:repeat(2,1fr);}
+    .kpi{border-right:none; border-bottom:1px solid #EFEFEF;}
+    .track-container{height:340px; width:1000px; min-width:1000px;}
+    .stage-wrap{overflow-x:auto; padding-left:0; padding-right:0;}
+    .stage-wrap > .track-container{margin-left:4vw;}
+    .stage-title h2{font-size:18px;}
+    .scroll-hint{display:block;}
+  }
+  @media (max-width:480px){
+    h1{font-size:21px;}
+    .meta-item b{font-size:12.5px;}
+    .sla-card{padding:22px 18px;}
+    .sla-total-num{font-size:24px;}
+  }
+  .scroll-hint{display:none; text-align:center; font-size:11.5px; color:var(--amarelo-escuro); font-weight:700; margin-top:8px;}
+  @media (prefers-reduced-motion: reduce){
+    .cart-guy, .pulse-dot{animation:none; offset-distance:5%;}
+    .cart-guy .legL, .cart-guy .legR, .cart-guy .wheel{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Rede Nilo Supermercados · Gestão de Processos</div>
+  <h1>Fluxo de Televendas — Riscos e Gargalos Operacionais</h1>
+  <div class="sub">Mesmo macroprocesso mapeado — do pedido via WhatsApp à entrega — com os principais pontos de falha identificados em cada etapa, para priorização de ações de melhoria.</div>
+  <div class="meta-row">
+    <div class="meta-item"><b>5 etapas</b>Macroprocesso mapeado</div>
+    <div class="meta-item"><b>5h00</b>SLA total do processo</div>
+    <div class="meta-item"><b>13 riscos</b>Identificados no fluxo</div>
+  </div>
+</div>
+
+<div class="kpi-strip">
+  <div class="kpi"><div class="num">01</div><div class="lbl">Recebimento</div></div>
+  <div class="kpi"><div class="num">02</div><div class="lbl">Separação</div></div>
+  <div class="kpi"><div class="num">03</div><div class="lbl">Passagem no Caixa</div></div>
+  <div class="kpi"><div class="num">04</div><div class="lbl">Conferência / Prevenção</div></div>
+  <div class="kpi"><div class="num">05</div><div class="lbl">Entrega</div></div>
+</div>
+
+<div class="stage-wrap">
+  <div class="stage-title">
+    <h2>Percurso do Pedido na Loja</h2>
+    <p>Acompanhe o carrinho percorrendo cada etapa do processo, em looping contínuo</p>
+    <p class="scroll-hint">↔ Deslize para o lado para ver o percurso completo</p>
+  </div>
+
+  <div class="track-container" id="trackContainer">
+    <svg class="track-svg" id="trackSvg" viewBox="0 0 1200 560" preserveAspectRatio="none">
+      <path id="aislePath" class="aisle-path" d=""></path>
+      <path id="aisleDash" class="aisle-dash" d=""></path>
+    </svg>
+
+    <div class="cart-guy" id="cartGuy">
+      <div class="timer-badge" id="timerBadge">0h00</div>
+      <svg viewBox="0 0 100 100">
+        <ellipse cx="50" cy="88" rx="30" ry="5" fill="rgba(27,42,74,0.14)"/>
+        <g transform="translate(10,14)">
+          <path d="M2 2 H14 L22 46 H70 L82 14 H26" fill="none" stroke="#1B2A4A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="26" y="14" width="46" height="26" rx="2" fill="#FFC400" opacity="0.92"/>
+          <line x1="38" y1="18" x2="34" y2="36" stroke="#E6A100" stroke-width="3" stroke-linecap="round"/>
+          <line x1="50" y1="18" x2="47" y2="36" stroke="#E6A100" stroke-width="3" stroke-linecap="round"/>
+          <line x1="62" y1="18" x2="60" y2="36" stroke="#E6A100" stroke-width="3" stroke-linecap="round"/>
+          <circle class="wheel" cx="30" cy="58" r="7" fill="#F7F7F5" stroke="#1B2A4A" stroke-width="5"/>
+          <circle class="wheel" cx="64" cy="58" r="7" fill="#F7F7F5" stroke="#1B2A4A" stroke-width="5"/>
+        </g>
+      </svg>
+    </div>
+    <div class="pulse-dot" id="pulseDot"></div>
+
+    <!-- Stations -->
+    <div class="station" id="s1">
+      <div class="node">💬</div>
+      <h3>Pedido via WhatsApp</h3>
+      <p>Cliente envia pedido; atendente confirma itens e forma de pagamento</p>
+      <span class="tag">Comercial</span>
+    </div>
+
+    <div class="station" id="s2">
+      <div class="node">🧺</div>
+      <h3>Separação</h3>
+      <p>Equipe separa os produtos nas gôndolas conforme a lista do pedido</p>
+      <span class="tag">Loja</span>
+    </div>
+
+    <div class="station" id="s3">
+      <div class="node">🧾</div>
+      <h3>Passagem no Caixa</h3>
+      <p>Itens são registrados e o pedido é faturado no PDV</p>
+      <span class="tag">Caixa</span>
+    </div>
+
+    <div class="station prevencao" id="s4">
+      <div class="node">🛡️</div>
+      <h3>Conferência e Liberação</h3>
+      <p>Prevenção de Perdas confere itens x cupom e libera o pedido</p>
+      <span class="tag">Prevenção</span>
+    </div>
+
+    <div class="station" id="s5">
+      <div class="node">🛵</div>
+      <h3>Entrega ao Cliente</h3>
+      <p>Pedido liberado segue para expedição e entrega final</p>
+      <span class="tag">Expedição</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot"></span> Etapa operacional</div>
+    <div class="legend-item"><span class="legend-dot prev"></span> Ponto de controle (Prevenção)</div>
+  </div>
+
+  <div class="sla-card">
+    <div class="sla-header">
+      <div>
+        <div class="sla-eyebrow">Indicador de Desempenho</div>
+        <div class="sla-title">SLA Total do Processo</div>
+        <div class="sla-desc">Tempo decorrido desde o recebimento do pedido via WhatsApp até a entrega ao cliente</div>
+      </div>
+      <div class="sla-total">
+        <span class="sla-total-num">5h00</span>
+        <span class="sla-total-lbl">Pedido &rarr; Entrega</span>
+      </div>
+    </div>
+    <div class="sla-breakdown">
+      <div class="sla-step">
+        <div class="sla-step-lbl">Pedido &rarr; Separação</div>
+        <div class="sla-bar"><div class="sla-bar-fill" style="width:20%"></div></div>
+        <div class="sla-step-time">1h00</div>
+      </div>
+      <div class="sla-step">
+        <div class="sla-step-lbl">Separação &rarr; Caixa</div>
+        <div class="sla-bar"><div class="sla-bar-fill" style="width:30%"></div></div>
+        <div class="sla-step-time">1h30</div>
+      </div>
+      <div class="sla-step">
+        <div class="sla-step-lbl">Caixa &rarr; Conferência</div>
+        <div class="sla-bar"><div class="sla-bar-fill prev" style="width:20%"></div></div>
+        <div class="sla-step-time">1h00</div>
+      </div>
+      <div class="sla-step">
+        <div class="sla-step-lbl">Liberação &rarr; Entrega</div>
+        <div class="sla-bar"><div class="sla-bar-fill" style="width:30%"></div></div>
+        <div class="sla-step-time">1h30</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="risk-map">
+    <div class="risk-map-header">
+      <div class="sla-eyebrow">Análise de Processo</div>
+      <div class="sla-title">Mapa de Riscos e Gargalos por Etapa</div>
+      <div class="sla-desc">Pontos de falha identificados ao longo do fluxo, para priorização de planos de ação</div>
+    </div>
+
+    <div class="legend" style="margin-bottom:22px;">
+      <div class="legend-item"><span style="width:14px;height:14px;border-radius:50%;background:#C0392B;display:inline-block;"></span> Criticidade Alta</div>
+      <div class="legend-item"><span style="width:14px;height:14px;border-radius:50%;background:#D98A1F;display:inline-block;"></span> Criticidade Média</div>
+    </div>
+
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-card-top">
+          <span class="risk-card-icon">💬</span>
+          <div>
+            <div class="risk-card-stage">Etapa 1 · Pedido via WhatsApp</div>
+            <span class="crit-tag med">Criticidade Média</span>
+          </div>
+        </div>
+        <ul class="risk-list">
+          <li>Cliente demora a completar a lista de pedidos</li>
+        </ul>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-card-top">
+          <span class="risk-card-icon">🧺</span>
+          <div>
+            <div class="risk-card-stage">Etapa 2 · Separação</div>
+            <span class="crit-tag high">Criticidade Alta</span>
+          </div>
+        </div>
+        <ul class="risk-list">
+          <li>Separação de produto errado</li>
+          <li>Separação de quantidade errada</li>
+          <li>Erro de pesagem</li>
+          <li>Falta de comunicação de ruptura de estoque ao televendas (para negociação com o cliente)</li>
+          <li>Dependência de empilhadeira para separar determinados produtos</li>
+        </ul>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-card-top">
+          <span class="risk-card-icon">🧾</span>
+          <div>
+            <div class="risk-card-stage">Etapa 3 · Passagem no Caixa</div>
+            <span class="crit-tag med">Criticidade Média</span>
+          </div>
+        </div>
+        <ul class="risk-list">
+          <li>Passagem de produto errado</li>
+          <li>Produto esquecido (não registrado)</li>
+          <li>Quantidade divergente registrada</li>
+          <li>Cliente demora a efetivar o pagamento, ocupando o caixa</li>
+        </ul>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-card-top">
+          <span class="risk-card-icon">🛡️</span>
+          <div>
+            <div class="risk-card-stage">Etapa 4 · Conferência e Liberação</div>
+            <span class="crit-tag high">Criticidade Alta</span>
+          </div>
+        </div>
+        <ul class="risk-list">
+          <li>Conferência realizada de forma incorreta</li>
+          <li>Erro de contagem de itens</li>
+        </ul>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-card-top">
+          <span class="risk-card-icon">🛵</span>
+          <div>
+            <div class="risk-card-stage">Etapa 5 · Entrega ao Cliente</div>
+            <span class="crit-tag med">Criticidade Média</span>
+          </div>
+        </div>
+        <ul class="risk-list">
+          <li>Atraso na entrega por falta de logística disponível</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-notes">
+  Fluxograma ilustrativo elaborado para fins de comunicação executiva do processo de <b>Televendas</b> da Rede Nilo Supermercados.
+  Tempos de etapa informados pela liderança operacional; riscos e gargalos levantados junto às áreas envolvidas. Recomenda-se priorização de planos de ação para as etapas de <b>Separação</b> e <b>Conferência</b>, classificadas como criticidade alta.
+</div>
+
+<script>
+  // Build a winding "aisle" path across the 1200x560 viewBox, and place the 5 stations
+  // exactly on the path at even distance intervals.
+  const svgEl = document.getElementById('trackSvg');
+  const aislePath = document.getElementById('aislePath');
+  const aisleDash = document.getElementById('aisleDash');
+  const container = document.getElementById('trackContainer');
+  const cartGuy = document.getElementById('cartGuy');
+  const timerBadge = document.getElementById('timerBadge');
+  const pulseDot = document.getElementById('pulseDot');
+  const stationIds = ['s1','s2','s3','s4','s5'];
+
+  function buildPath(){
+    // Always horizontal S-curve — no vertical mobile fallback
+    const points = [
+      {x:80,  y:120},
+      {x:360, y:420},
+      {x:640, y:100},
+      {x:900, y:420},
+      {x:1140,y:150}
+    ];
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for(let i=0;i<points.length-1;i++){
+      const p0 = points[i], p1 = points[i+1];
+      const midX = (p0.x+p1.x)/2, midY=(p0.y+p1.y)/2;
+      d += ` Q ${midX} ${midY} ${p1.x} ${p1.y}`;
+    }
+    return {d, points, isMobile:false};
+  }
+
+  function layout(){
+    const {d, points} = buildPath();
+    svgEl.setAttribute('viewBox', "0 0 1200 560");
+    aislePath.setAttribute('d', d);
+    aisleDash.setAttribute('d', d);
+
+    const rect = container.getBoundingClientRect();
+    const scaleX = rect.width / 1200;
+    const scaleY = rect.height / 560;
+
+    stationIds.forEach((id, i) => {
+      const pt = points[i];
+      const el = document.getElementById(id);
+      el.style.left = (pt.x*scaleX) + 'px';
+      el.style.top = (pt.y*scaleY) + 'px';
+    });
+  }
+
+  // ===== JS-driven motion along the path, pausing at every station =====
+  const DURATION = 15000;   // ms per full loop
+  const PAUSE = 900;        // ms stopped at each station
+  let timeline = null;
+  let totalLenCache = 0;
+
+  // Tempos reais de cada etapa (em minutos), conforme informado:
+  // Pedido -> Separação = 60 | Separação -> Caixa = 90 | Caixa -> Conferência = 60 | Conferência -> Entrega = 90
+  const STAGE_MINUTES = [60, 90, 60, 90];
+  const nodeMinutes = [0];
+  STAGE_MINUTES.forEach(m => nodeMinutes.push(nodeMinutes[nodeMinutes.length-1] + m));
+  const SLA_TOTAL_MIN = nodeMinutes[nodeMinutes.length-1];
+
+  function formatHM(min){
+    const h = Math.floor(min/60);
+    const m = Math.round(min%60);
+    return m===0 ? `${h}h00` : `${h}h${String(m).padStart(2,'0')}`;
+  }
+
+  function buildTimeline(points){
+    // measure cumulative arc length at each waypoint using per-segment sub-paths
+    const tmp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    let cum = 0;
+    const knotLens = [0];
+    for(let i=0;i<points.length-1;i++){
+      const p0 = points[i], p1 = points[i+1];
+      const midX = (p0.x+p1.x)/2, midY=(p0.y+p1.y)/2;
+      tmp.setAttribute('d', `M ${p0.x} ${p0.y} Q ${midX} ${midY} ${p1.x} ${p1.y}`);
+      cum += tmp.getTotalLength();
+      knotLens.push(cum);
+    }
+    totalLenCache = cum;
+
+    const nStops = points.length;
+    const travelTotal = DURATION - PAUSE * nStops;
+    const segLens = [];
+    for(let i=0;i<nStops-1;i++) segLens.push(knotLens[i+1]-knotLens[i]);
+    const segTimes = segLens.map(l => (l/cum) * travelTotal);
+
+    // build ordered list of phases: pause@node0, travel0, pause@node1, travel1, ...
+    const phases = [];
+    let t = 0;
+    for(let i=0;i<nStops;i++){
+      phases.push({type:'pause', tStart:t, tEnd:t+PAUSE, len:knotLens[i], min:nodeMinutes[i]});
+      t += PAUSE;
+      if(i < nStops-1){
+        phases.push({type:'travel', tStart:t, tEnd:t+segTimes[i], lenStart:knotLens[i], lenEnd:knotLens[i+1], minStart:nodeMinutes[i], minEnd:nodeMinutes[i+1]});
+        t += segTimes[i];
+      }
+    }
+    return phases;
+  }
+
+  function lenAtTime(elapsed){
+    for(const ph of timeline){
+      if(elapsed >= ph.tStart && elapsed <= ph.tEnd){
+        if(ph.type === 'pause') return ph.len;
+        const frac = (elapsed - ph.tStart) / (ph.tEnd - ph.tStart);
+        return ph.lenStart + (ph.lenEnd - ph.lenStart) * frac;
+      }
+    }
+    return 0;
+  }
+
+  function minutesAtTime(elapsed){
+    for(const ph of timeline){
+      if(elapsed >= ph.tStart && elapsed <= ph.tEnd){
+        if(ph.type === 'pause') return ph.min;
+        const frac = (elapsed - ph.tStart) / (ph.tEnd - ph.tStart);
+        return ph.minStart + (ph.minEnd - ph.minStart) * frac;
+      }
+    }
+    return 0;
+  }
+
+  let startTime = null;
+  function animate(ts){
+    if(startTime === null) startTime = ts;
+    const elapsed = (ts - startTime) % DURATION;
+
+    const rect = container.getBoundingClientRect();
+    const scaleX = rect.width / 1200;
+    const scaleY = rect.height / 560;
+
+    const dist = lenAtTime(elapsed);
+    const pt = aislePath.getPointAtLength(dist);
+    const ptAhead = aislePath.getPointAtLength(Math.min(dist + 2, totalLenCache));
+
+    const x = pt.x * scaleX;
+    const y = pt.y * scaleY;
+    const angle = Math.atan2((ptAhead.y - pt.y), (ptAhead.x - pt.x)) * (180/Math.PI);
+
+    cartGuy.style.transform = `translate(${x}px, ${y}px) rotate(${angle * 0.12}deg)`;
+    pulseDot.style.transform = `translate(${x}px, ${y}px)`;
+
+    timerBadge.textContent = formatHM(minutesAtTime(elapsed));
+
+    requestAnimationFrame(animate);
+  }
+
+  function init(){
+    layout();
+    const {points} = buildPath();
+    timeline = buildTimeline(points);
+    requestAnimationFrame(animate);
+  }
+
+  init();
+  window.addEventListener('resize', () => {
+    clearTimeout(window._rt);
+    window._rt = setTimeout(layout, 150);
+  });
+</script>
+
+</body>
+</html>
